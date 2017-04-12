@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
@@ -21,7 +22,6 @@ import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Patterns;
 import android.webkit.MimeTypeMap;
-import android.content.pm.PackageManager;
 
 import com.facebook.react.ReactActivity;
 import com.facebook.react.bridge.ActivityEventListener;
@@ -30,9 +30,10 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.modules.core.PermissionListener;
 import com.imagepicker.media.ImageConfig;
-import com.imagepicker.permissions.PermissionUtils;
 import com.imagepicker.permissions.OnImagePickerPermissionsCallback;
+import com.imagepicker.permissions.PermissionUtils;
 import com.imagepicker.utils.MediaUtils.ReadExifResult;
 import com.imagepicker.utils.RealPathUtil;
 import com.imagepicker.utils.UI;
@@ -47,11 +48,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 
-import com.facebook.react.modules.core.PermissionListener;
-
-import static com.imagepicker.utils.MediaUtils.*;
+import static com.imagepicker.utils.MediaUtils.RolloutPhotoResult;
 import static com.imagepicker.utils.MediaUtils.createNewFile;
+import static com.imagepicker.utils.MediaUtils.fileScan;
 import static com.imagepicker.utils.MediaUtils.getResizedImage;
+import static com.imagepicker.utils.MediaUtils.readExifInterface;
+import static com.imagepicker.utils.MediaUtils.removeUselessFiles;
+import static com.imagepicker.utils.MediaUtils.rolloutPhotoFromCamera;
 
 public class ImagePickerModule extends ReactContextBaseJavaModule
         implements ActivityEventListener
@@ -742,7 +745,7 @@ public class ImagePickerModule extends ReactContextBaseJavaModule
       Bitmap thumbnail = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
 
 
-      File outFile = createNewFile();
+      File outFile = createNewFile(reactContext, this.options, true);
 
 
       FileOutputStream out = new FileOutputStream(outFile);
