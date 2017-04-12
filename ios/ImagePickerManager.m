@@ -464,6 +464,36 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
             }
 
             [self.response setObject:videoDestinationURL.absoluteString forKey:@"uri"];
+            
+            //-----
+            
+            
+            AVURLAsset *asset = [[AVURLAsset alloc] initWithURL: videoDestinationURL options:nil];
+            AVAssetImageGenerator *generator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+            generator.appliesPreferredTrackTransform = YES;
+            NSError *err = NULL;
+            CMTime requestedTime = CMTimeMake(1, 60);     // To create thumbnail image
+            CGImageRef imgRef = [generator copyCGImageAtTime:requestedTime actualTime:NULL error:&err];
+            
+            if(err){
+                self.callback(@[@{@"error": @"make thumbnail failed"}]);
+                return;
+            }
+            
+            NSLog(@"err = %@, imageRef = %@", err, imgRef);
+            
+            UIImage *thumbnailImage = [[UIImage alloc] initWithCGImage:imgRef];
+            CGImageRelease(imgRef);    // MUST release explicitly to avoid memory leak
+            
+            NSString *fileName = [NSString stringWithFormat:@"thumbnail-%@.jpg",[[NSUUID UUID] UUIDString]];
+            NSString *filePath = [dir stringByAppendingPathComponent:fileName];
+            [UIImageJPEGRepresentation(thumbnailImage, 0.8) writeToFile:filePath atomically:YES];
+            resolve(fileName);
+            [self.response setObject:fileName forKey:@"thumbnail"];
+            
+            
+            //-----
+            
             if (videoRefURL.absoluteString) {
                 [self.response setObject:videoRefURL.absoluteString forKey:@"origURL"];
             }
