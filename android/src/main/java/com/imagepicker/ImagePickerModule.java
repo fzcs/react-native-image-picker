@@ -6,7 +6,9 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.provider.Settings;
@@ -388,17 +390,35 @@ public class ImagePickerModule extends ReactContextBaseJavaModule
         break;
 
       case REQUEST_LAUNCH_VIDEO_LIBRARY:
-        responseHelper.putString("uri", data.getData().toString());
+        final String videoUri = data.getData().toString();
+        responseHelper.putString("uri", videoUri);
         responseHelper.putString("path", getRealPathFromURI(data.getData()));
+        String thumbnail = getThumbnail(videoUri);
+        if (TextUtils.isEmpty(thumbnail)) {
+          responseHelper.invokeError(callback, "Can not create thumbnail of video : " + videoUri);
+          callback = null;
+          return;
+        }
+        responseHelper.putString("thumbnail", thumbnail);
+
         responseHelper.invokeResponse(callback);
         callback = null;
         return;
 
       case REQUEST_LAUNCH_VIDEO_CAPTURE:
         final String path = getRealPathFromURI(data.getData());
-        responseHelper.putString("uri", data.getData().toString());
+        final String videoUri2 = data.getData().toString();
+        responseHelper.putString("uri", videoUri2);
         responseHelper.putString("path", path);
-        fileScan(reactContext, path);
+        String thumbnail2 = getThumbnail(videoUri2);
+        if (TextUtils.isEmpty(thumbnail2)) {
+          responseHelper.invokeError(callback, "Can not create thumbnail of video : " + videoUri2);
+          callback = null;
+          return;
+        }
+        responseHelper.putString("thumbnail", thumbnail2);
+
+        fileScan(reactContext,path);
         responseHelper.invokeResponse(callback);
         callback = null;
         return;
@@ -698,6 +718,44 @@ public class ImagePickerModule extends ReactContextBaseJavaModule
     videoDurationLimit = 0;
     if (options.hasKey("durationLimit")) {
       videoDurationLimit = options.getInt("durationLimit");
+    }
+  }
+  public String getThumbnail(String path) {
+    //step1 处理 path
+    Uri uri = Uri.parse(path);
+    String scheme = uri.getScheme();
+    String realPath;
+
+    if (scheme.equals("content")) {
+      realPath = RealPathUtil.getRealPathFromURI(getCurrentActivity(), uri);
+    } else if (scheme.equals("file")) {
+      realPath = uri.getPath();
+    } else {
+      return "";
+    }
+
+
+    //step2 获取缩略图
+    try {
+      MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+      retriever.setDataSource(realPath);
+      Bitmap thumbnail = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+
+
+      File outFile = createNewFile();
+
+
+      FileOutputStream out = new FileOutputStream(outFile);
+
+      if (!thumbnail.compress(Bitmap.CompressFormat.JPEG, 80, out)) {
+        out.close();
+        throw new IOException("Error get video thumbnail :" + outFile.getAbsolutePath());
+      }
+      out.close();
+      return Uri.fromFile(outFile).toString();
+    } catch (IOException e) {
+      e.printStackTrace();
+      return "";
     }
   }
 }

@@ -140,9 +140,10 @@ public class ImageConfig
                                int initialHeight,
                                int currentRotation)
     {
-        return ((initialWidth < maxWidth && maxWidth > 0) || maxWidth == 0) &&
-                ((initialHeight < maxHeight && maxHeight > 0) || maxHeight == 0) &&
-                quality == 100 && (rotation == 0 || currentRotation == rotation);
+        return false;
+//        return ((initialWidth < maxWidth && maxWidth > 0) || maxWidth == 0) &&
+//                ((initialHeight < maxHeight && maxHeight > 0) || maxHeight == 0) &&
+//                quality == 100 && (rotation == 0 || currentRotation == rotation);
     }
 
     public File getActualFile()
